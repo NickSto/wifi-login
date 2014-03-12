@@ -1,0 +1,14 @@
+POST /login.html HTTP/1.1
+Host: 1.1.1.1
+Connection: keep-alive
+Content-Length: 119
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Origin: http://1.1.1.1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.149 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Referer: http://1.1.1.1/login.html?redirect=nsto.co/
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+
+buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fnsto.co%2F&email=nmapsy%40gmail.com
