@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Location: http://Fernwood-wireless-gateway.cit.nih.gov/fs/customwebauth/login.html?switch_url=http://Fernwood-wireless-gateway.cit.nih.gov/login.html&wlan=NIH-Guest-Network&redirect=www.nsto.co/
+Content-Type: text/html
+Content-Length: 437
+
+<HTML><HEAD><TITLE> Web Authentication Redirect</TITLE><META http-equiv="Cache-control" content="no-cache"><META http-equiv="Pragma" content="no-cache"><META http-equiv="Expires" content="-1"><META http-equiv="refresh" content="1; URL=http://Fernwood-wireless-gateway.cit.nih.gov/fs/customwebauth/login.html?switch_url=http://Fernwood-wireless-gateway.cit.nih.gov/login.html&wlan=NIH-Guest-Network&redirect=www.nsto.co/"></HEAD></HTML>
