@@ -1,0 +1,15 @@
+POST /login.html HTTP/1.1
+Host: b12-wireless-gateway.cit.nih.gov
+Connection: keep-alive
+Content-Length: 54
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Origin: http://b12-wireless-gateway.cit.nih.gov
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Referer: http://b12-wireless-gateway.cit.nih.gov/fs/customwebauth/login.html?switch_url=http://b12-wireless-gateway.cit.nih.gov/login.html&wlan=NIH-CRC-Patient&redirect=www.nsto.co/
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+Cookie: ncbi_sid=50C95150116F7891_0000SID
+
+buttonClicked=4&redirect_url=www.nsto.co%2F&err_flag=0

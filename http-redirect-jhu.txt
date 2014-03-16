@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
-Location: http://1.1.1.1/login.html?redirect=nsto.co/
+Server: HTTP Appgw
 Content-Type: text/html
-Content-Length: 296
+Content-Length: 427
 
-<HTML><HEAD><TITLE> Web Authentication Redirect</TITLE><META http-equiv="Cache-control" content="no-cache"><META http-equiv="Pragma" content="no-cache"><META http-equiv="Expires" content="-1"><META http-equiv="refresh" content="1; URL=http://1.1.1.1/login.html?redirect=nsto.co/"></HEAD></HTML>
+<HTML><HEAD><TITLE> Web Authentication Redirect</TITLE><META http-equiv="Cache-control" content="no-cache"><META http-equiv="Pragma" content="no-cache"><META http-equiv="Expires" content="-1"><META http-equiv="refresh" content="1; URL=https://1.1.1.1/login.html?redirect=notify12.dropbox.com/subscribe?host_int=94068893&ns_map=55397290_4161878707114,26625443_21857115194787,66648501_373728803253&ts=1330130849"></HEAD></HTML>
