@@ -13,6 +13,7 @@ import datetime
 
 LOG = sys.stderr
 
+SILENCE_FILE = '.local/share/nbsdata/SILENCE'
 SSIDS = ['NIH-Guest-Network', 'NIH-CRC-Patient', 'JHGuestnet' ]
 TEST_URL = 'http://nsto.co/misc/access.txt'
 EXPECTED = 'You are connected to the real Internet.'
@@ -80,6 +81,12 @@ headers['nih-b45']['Referer'] = 'http://wlan-gateway-b45-outside.net.nih.gov:81/
 headers['nih-b45']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
 
 def main():
+  
+  # script can't work without making internet connections; exit if
+  # silence is requested.
+  silence_path = os.path.join(os.path.expanduser('~'), SILENCE_FILE)
+  if os.path.exists(silence_path):
+    sys.exit(0)
 
   ssid = get_ssid()
   if ssid is None:
