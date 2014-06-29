@@ -82,6 +82,10 @@ headers['nih-b45']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
 def main():
 
   ssid = get_ssid()
+  if ssid is None:
+    LOG.write("You do not seem to be connected to wifi.")
+    sys.exit()
+  
   # if -d argument is used, detect whether the wifi network is a recognized one
   # and only proceed if it is
   for arg in sys.argv:
