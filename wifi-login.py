@@ -7,6 +7,8 @@ import os
 import re
 import sys
 import copy
+import errno
+import socket
 import httplib
 import urlparse
 import datetime
@@ -90,7 +92,7 @@ def main():
 
   ssid = get_ssid()
   if ssid is None:
-    LOG.write("You do not seem to be connected to wifi.")
+    LOG.write("You do not seem to be connected to wifi.\n")
     sys.exit()
   
   # if -d argument is used, detect whether the wifi network is a recognized one
@@ -107,6 +109,7 @@ def main():
   (content, response) = make_request(TEST_URL)
   if response.status == 200 and content == EXPECTED:
     LOG.write('You look connected. Response from '+TEST_URL+' is as expected.\n')
+    print "connected"
     sys.exit(0)
   else:
     LOG.write('Your connection seems intercepted. Response from '+TEST_URL
@@ -138,6 +141,7 @@ def main():
     response = conex.getresponse()
     conex.close()
     LOG.write("Login looks successful!\n")
+    print "connected"
   except Exception:
     LOG.write("Error: Login unsuccessful. Maybe a bad status line?\n")
     conex.close()
@@ -162,8 +166,8 @@ def make_request(url):
   if query:
     path += '?'+query
 
-  sys.stderr.write("making request to "+url+" to determine which wifi "
-    +"network you're on\n")
+  sys.stderr.write("Making request to "+url+" to determine whether "
+    "your network access is being intercepted.\n")
   if url.startswith('https://'):
     conex = httplib.HTTPSConnection(domain)
   else:
@@ -171,6 +175,11 @@ def make_request(url):
 
   try:
     conex.request('GET', path)
+  except socket.error as se:
+    if se.errno == errno.ENETUNREACH:
+      sys.stderr.write("Error: Network unreachable. You may not be "
+        "connected to wifi.\n")
+      sys.exit()
   except Exception:
     sys.stderr.write("Error: Failed to make connection.\n")
     raise
