@@ -7,7 +7,6 @@ import os
 import re
 import sys
 import copy
-import urllib
 import httplib
 import urlparse
 import datetime
@@ -46,7 +45,7 @@ paths = {
 
 # data to send in the POST
 post_data = {
-  'jhguest': 'buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fnsto.co%2F&email=nmapsy%40gmail.com',
+  'jhguest': 'buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fnsto.co%2F&email=jonsnow%40gmail.com',
   'nih-b12': 'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
   'nih-fern':'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
   'nih-b45': 'authkey=uuaxyqpdkkwqhvjs&Login=nih_guest&Password=welcome2NIH',
@@ -108,7 +107,7 @@ def main():
     if ssid in LOGIN_DOMAINS:
       domain = LOGIN_DOMAINS[ssid]
     else:
-      fail('Error: could not determine login domain for network '+ssid)
+      fail('Error: could not determine login domain for network "'+ssid+'"')
   if (ssid, domain) in GATEWAYS:
     gateway = GATEWAYS[(ssid, domain)]
   else:
