@@ -12,19 +12,28 @@ import socket
 import httplib
 import urlparse
 import datetime
+import ipwraplib
 
 LOG = sys.stderr
 
 SILENCE_FILE = '.local/share/nbsdata/SILENCE'
-SSIDS = ['NIH-Guest-Network', 'NIH-CRC-Patient', 'JHGuestnet' ]
 TEST_URL = 'http://nsto.co/misc/access.txt'
 EXPECTED = 'You are connected to the real Internet.'
+
+# SSID has to be in here to auto-connect with -d
+SSIDS = [
+  'NIH-Guest-Network',
+  'NIH-CRC-Patient',
+  'JHGuestnet',
+  'upmc-guest'
+]
 
 # If no redirect is found in the "Location:" header of the interception
 # response, the login will be sent to the domain listed here (using the SSID as
 # the key).
 LOGIN_DOMAINS = {
   'JHGuestnet':'1.1.1.1',
+  'upmc-guest':'10.1.123.5',
 }
 
 # Identify gateways by some combination of the SSID, login domain, etc.
@@ -36,6 +45,7 @@ GATEWAYS = {
   ('NIH-Guest-Network','fernwood-wireless-gateway.cit.nih.gov'): 'nih-fern',
   ('NIH-CRC-Patient',  'wlan-gateway-b45-outside.net.nih.gov:81'): 'nih-b45',
   ('NIH-Guest-Network','wlan-gateway-b45-outside.net.nih.gov:81'): 'nih-b45',
+  ('upmc-guest',       '10.1.123.5'): 'upmc',
 }
 
 # Path to send the login POST to
@@ -44,14 +54,16 @@ paths = {
   'nih-b12' :'/login.html',
   'nih-fern':'/login.html',
   'nih-b45' :'/',
+  'upmc'    :'/auth/index.html/u',
 }
 
 # data to send in the POST
 post_data = {
-  'jhguest': 'buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fnsto.co%2F&email=jonsnow%40gmail.com',
-  'nih-b12': 'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
+  'jhguest' :'buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fnsto.co%2F&email=jonsnow%40gmail.com',
+  'nih-b12' :'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
   'nih-fern':'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
-  'nih-b45': 'authkey=uuaxyqpdkkwqhvjs&Login=nih_guest&Password=welcome2NIH',
+  'nih-b45' :'authkey=uuaxyqpdkkwqhvjs&Login=nih_guest&Password=welcome2NIH',
+  'upmc'    :'email=guestuser%40upmc.com&cmd=authenticate&Login=I+ACCEPT',
 }
 
 HEADERS_BASE = {
@@ -65,10 +77,11 @@ HEADERS_BASE = {
 }
 
 headers = {
-  'jhguest' : copy.deepcopy(HEADERS_BASE),
-  'nih-b12' : copy.deepcopy(HEADERS_BASE),
-  'nih-fern': copy.deepcopy(HEADERS_BASE),
-  'nih-b45' : copy.deepcopy(HEADERS_BASE),
+  'jhguest' :copy.deepcopy(HEADERS_BASE),
+  'nih-b12' :copy.deepcopy(HEADERS_BASE),
+  'nih-fern':copy.deepcopy(HEADERS_BASE),
+  'nih-b45' :copy.deepcopy(HEADERS_BASE),
+  'upmc'    :copy.deepcopy(HEADERS_BASE),
 }
 headers['jhguest']['Origin']  = 'http://1.1.1.1'
 headers['jhguest']['Referer'] = 'http://1.1.1.1/login.html?redirect=nsto.co/'
@@ -81,6 +94,8 @@ headers['nih-fern']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
 headers['nih-b45']['Origin']  = 'http://wlan-gateway-b45-outside.net.nih.gov:81'
 headers['nih-b45']['Referer'] = 'http://wlan-gateway-b45-outside.net.nih.gov:81/'
 headers['nih-b45']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
+headers['upmc']['Referer']    = 'http://10.1.123.5/upload/custom/upmc-guest/index.html?cmd=login&switchip=10.1.123.5&mac='+ipwraplib.get_mac()+'&ip=10.110.129.155&essid=%20&apname=tunnel%2020&apgroup=&url=http%3A%2F%2Fgoogle%2Ecom%2F'
+headers['upmc']['Origin']     = 'http://10.1.123.5'
 
 def main():
   
