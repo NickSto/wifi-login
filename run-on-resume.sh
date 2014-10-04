@@ -3,6 +3,7 @@ set -ue
 
 SLEEP=5 # seconds
 TOTAL=60 # seconds
+SILENCE="$HOME/.local/share/nbsdata/SILENCE"
 
 if [[ $# -gt 0 ]]; then
   echo "USAGE: ./$(basename $0)
@@ -19,11 +20,14 @@ cd $(dirname $0)
 
 i=0
 while [[ $i -lt $TOTAL ]]; do
-  result=$(./wifi-login.py -d 2>/dev/null)
-  if [[ $result == "connected" ]]; then
-    echo $result
-    exit 0
+  if [[ ! -e $SILENCE ]]; then
+    result=$(./wifi-login.py -d 2>/dev/null)
+    if [[ $result == "connected" ]]; then
+      echo $result
+      exit 0
+    fi
   fi
   sleep $SLEEP
   i=$((i+SLEEP))
 done
+
