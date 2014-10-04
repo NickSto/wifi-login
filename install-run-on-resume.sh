@@ -5,17 +5,17 @@ SCRIPT_NAME="run-on-resume.sh"
 LINUX_DIR="/etc/pm/sleep.d"
 RESUME_SCRIPT_NAME="99_wifi_login.sh"
 
+function fail {
+  echo "$@" >&2
+  exit 1
+}
+
 if [[ $# -gt 0 ]]; then
   fail "USAGE: sudo ./$(basename $0)
 This will install $SCRIPT_NAME so that it will actually be executed when
 you wake from sleep.
 Currently only works on Linux systems that execute scripts in $LINUX_DIR."
 fi
-
-function fail {
-  echo "$@" >&2
-  exit 1
-}
 
 # cd to this script's directory
 cd $(dirname $0)
@@ -35,6 +35,7 @@ case "$platform" in
     fi
     echo "#!/usr/bin/env bash
 $script_dir/$SCRIPT_NAME" > "$resume_script"
+    chmod +x "$resume_script"
   ;;
   *)
     fail 'Error: Unsupported OS "'$platform'"'
