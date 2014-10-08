@@ -7,8 +7,10 @@ import os
 import re
 import sys
 import copy
+import uuid
 import errno
 import socket
+import urllib
 import httplib
 import urlparse
 import datetime
@@ -25,7 +27,8 @@ SSIDS = [
   'NIH-Guest-Network',
   'NIH-CRC-Patient',
   'JHGuestnet',
-  'upmc-guest'
+  'upmc-guest',
+  'attwifi',
 ]
 
 # If no redirect is found in the "Location:" header of the interception
@@ -46,6 +49,7 @@ GATEWAYS = {
   ('NIH-CRC-Patient',  'wlan-gateway-b45-outside.net.nih.gov:81'): 'nih-b45',
   ('NIH-Guest-Network','wlan-gateway-b45-outside.net.nih.gov:81'): 'nih-b45',
   ('upmc-guest',       '10.1.123.5'): 'upmc',
+  ('attwifi',          'nmd.pennst03.univepa.wayport.net'): 'attwifi',
 }
 
 # Path to send the login POST to
@@ -55,15 +59,18 @@ paths = {
   'nih-fern':'/login.html',
   'nih-b45' :'/',
   'upmc'    :'/auth/index.html/u',
+  'attwifi' :'/connect.adp'
 }
 
 # data to send in the POST
 post_data = {
-  'jhguest' :'buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fnsto.co%2F&email=jonsnow%40gmail.com',
+  'jhguest' :'buttonClicked=4&err_flag=0&err_msg=&info_flag=0&info_msg=&redirect_url=http%3A%2F%2Fgoogle.com%2F&email=jonsnow%40gmail.com',
   'nih-b12' :'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
   'nih-fern':'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
   'nih-b45' :'authkey=uuaxyqpdkkwqhvjs&Login=nih_guest&Password=welcome2NIH',
   'upmc'    :'email=guestuser%40upmc.com&cmd=authenticate&Login=I+ACCEPT',
+  #TODO: Look into 'ValidationHash' parameter
+  'attwifi' :'aupAgree=1&x=67&y=17&NmdId=489467&ReturnHost=nmd.pennst03.univepa.wayport.net&MacAddr='+urllib.quote(ipwraplib.get_mac().upper())+'&IpAddr='+ipwraplib.get_ip()+'&NduMacAddr=&NduPort=&PortType=Wireless&PortDesc=&UseCount=1&PaymentMethod=Passthrough&ChargeAmount=0.00&Style=AWS&vsgpId=&pVersion=2&ValidationHash=ee0d7b169225c151c211ec38a93528e6&origDest=&ProxyHost=&vsgId=1100844&Ip6Addr=&VlanId=24&TunnelIfId=6771040&ts=1412777213'
 }
 
 HEADERS_BASE = {
@@ -82,9 +89,10 @@ headers = {
   'nih-fern':copy.deepcopy(HEADERS_BASE),
   'nih-b45' :copy.deepcopy(HEADERS_BASE),
   'upmc'    :copy.deepcopy(HEADERS_BASE),
+  'attwifi' :copy.deepcopy(HEADERS_BASE),
 }
 headers['jhguest']['Origin']  = 'http://1.1.1.1'
-headers['jhguest']['Referer'] = 'http://1.1.1.1/login.html?redirect=nsto.co/'
+headers['jhguest']['Referer'] = 'http://1.1.1.1/login.html?redirect=google.com/'
 headers['nih-b12']['Origin']  = 'http://b12-wireless-gateway.cit.nih.gov/',
 headers['nih-b12']['Referer'] = 'http://b12-wireless-gateway.cit.nih.gov/fs/customwebauth/login.html?switch_url=http://b12-wireless-gateway.cit.nih.gov/login.html&wlan=NIH-CRC-Patient&redirect=www.nih.gov',
 headers['nih-b12']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
@@ -94,8 +102,10 @@ headers['nih-fern']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
 headers['nih-b45']['Origin']  = 'http://wlan-gateway-b45-outside.net.nih.gov:81'
 headers['nih-b45']['Referer'] = 'http://wlan-gateway-b45-outside.net.nih.gov:81/'
 headers['nih-b45']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
-headers['upmc']['Referer']    = 'http://10.1.123.5/upload/custom/upmc-guest/index.html?cmd=login&switchip=10.1.123.5&mac='+ipwraplib.get_mac()+'&ip=10.110.129.155&essid=%20&apname=tunnel%2020&apgroup=&url=http%3A%2F%2Fgoogle%2Ecom%2F'
-headers['upmc']['Origin']     = 'http://10.1.123.5'
+headers['upmc']['Referer'] = 'http://10.1.123.5/upload/custom/upmc-guest/index.html?cmd=login&switchip=10.1.123.5&mac='+ipwraplib.get_mac()+'&ip='+ipwraplib.get_ip()+'&essid=%20&apname=tunnel%2020&apgroup=&url=http%3A%2F%2Fgoogle%2Ecom%2F'
+headers['upmc']['Origin']  = 'http://10.1.123.5'
+headers['attwifi']['Referer'] = 'http://nmd.pennst03.univepa.wayport.net/index.adp?MacAddr='+urllib.quote(ipwraplib.get_mac().upper())+'&IpAddr='+urllib.quote(ipwraplib.get_ip())+'&Ip6Addr=&vsgpId=&vsgId=1100844&UserAgent=&ProxyHost=&TunnelIfId=6771040&VlanId=24'
+headers['attwifi']['Origin']  = 'http://nmd.pennst03.univepa.wayport.net'
 
 def main():
   
@@ -162,6 +172,7 @@ def main():
     conex.close()
 
 
+#TODO: replace with ipwraplib.get_wifi_info()
 def get_ssid():
   for line in os.popen('/sbin/iwconfig wlan0'):
     match = re.search(r'SSID:"([^"]+)"', line)
