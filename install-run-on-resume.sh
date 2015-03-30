@@ -3,7 +3,7 @@ set -ue
 
 SCRIPT_NAME="run-on-resume.sh"
 LINUX_DIR="/etc/pm/sleep.d"
-RESUME_SCRIPT_NAME="99_wifi_login.sh"
+RESUME_SCRIPT_NAME="15_wifi_login.sh"
 
 function fail {
   echo "$@" >&2
@@ -34,7 +34,7 @@ case "$platform" in
       fail "Error: $resume_script already exists."
     fi
     echo "#!/usr/bin/env bash
-$script_dir/$SCRIPT_NAME" > "$resume_script"
+$script_dir/$SCRIPT_NAME \$1" > "$resume_script"
     chmod +x "$resume_script"
   ;;
   *)
