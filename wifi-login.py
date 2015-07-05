@@ -29,6 +29,7 @@ SSIDS = [
   'JHGuestnet',
   'upmc-guest',
   'attwifi',
+  '_The Cloud',
 ]
 
 # If no redirect is found in the "Location:" header of the interception
@@ -37,6 +38,7 @@ SSIDS = [
 LOGIN_DOMAINS = {
   'JHGuestnet':'1.1.1.1',
   'upmc-guest':'10.1.123.5',
+  '_The Cloud':'10.5.2.1',
 }
 
 # Identify gateways by some combination of the SSID, login domain, etc.
@@ -50,6 +52,7 @@ GATEWAYS = {
   ('NIH-Guest-Network','wlan-gateway-b45-outside.net.nih.gov:81'): 'nih-b45',
   ('upmc-guest',       '10.1.123.5'): 'upmc',
   ('attwifi',          'nmd.pennst03.univepa.wayport.net'): 'attwifi',
+  ('_The Cloud',       'service.thecloud.net'): 'thecloud',
 }
 
 # Path to send the login POST to
@@ -59,7 +62,8 @@ paths = {
   'nih-fern':'/login.html',
   'nih-b45' :'/',
   'upmc'    :'/auth/index.html/u',
-  'attwifi' :'/connect.adp'
+  'attwifi' :'/connect.adp',
+  'thecloud':'/service-platform/login/',
 }
 
 # data to send in the POST
@@ -69,7 +73,8 @@ post_data = {
   'nih-fern':'buttonClicked=4&redirect_url=www.nih.gov&err_flag=0',
   'nih-b45' :'authkey=uuaxyqpdkkwqhvjs&Login=nih_guest&Password=welcome2NIH',
   'upmc'    :'email=guestuser%40upmc.com&cmd=authenticate&Login=I+ACCEPT',
-  #TODO: Look into 'ValidationHash' parameter
+  'thecloud':'username=nma.psy%2Btc%40gmail.com&password=blabbitybloo',
+  #TODO: Will have to scrape the 'ValidationHash' from the interception page HTML
   'attwifi' :'aupAgree=1&x=67&y=17&NmdId=489467&ReturnHost=nmd.pennst03.univepa.wayport.net&MacAddr='+urllib.quote(ipwraplib.get_mac().upper())+'&IpAddr='+ipwraplib.get_ip()+'&NduMacAddr=&NduPort=&PortType=Wireless&PortDesc=&UseCount=1&PaymentMethod=Passthrough&ChargeAmount=0.00&Style=AWS&vsgpId=&pVersion=2&ValidationHash=ee0d7b169225c151c211ec38a93528e6&origDest=&ProxyHost=&vsgId=1100844&Ip6Addr=&VlanId=24&TunnelIfId=6771040&ts=1412777213'
 }
 
@@ -90,6 +95,7 @@ headers = {
   'nih-b45' :copy.deepcopy(HEADERS_BASE),
   'upmc'    :copy.deepcopy(HEADERS_BASE),
   'attwifi' :copy.deepcopy(HEADERS_BASE),
+  'thecloud':copy.deepcopy(HEADERS_BASE),
 }
 headers['jhguest']['Origin']  = 'http://1.1.1.1'
 headers['jhguest']['Referer'] = 'http://1.1.1.1/login.html?redirect=google.com/'
@@ -106,6 +112,9 @@ headers['upmc']['Referer'] = 'http://10.1.123.5/upload/custom/upmc-guest/index.h
 headers['upmc']['Origin']  = 'http://10.1.123.5'
 headers['attwifi']['Referer'] = 'http://nmd.pennst03.univepa.wayport.net/index.adp?MacAddr='+urllib.quote(ipwraplib.get_mac().upper())+'&IpAddr='+urllib.quote(ipwraplib.get_ip())+'&Ip6Addr=&vsgpId=&vsgId=1100844&UserAgent=&ProxyHost=&TunnelIfId=6771040&VlanId=24'
 headers['attwifi']['Origin']  = 'http://nmd.pennst03.univepa.wayport.net'
+headers['thecloud']['Referer'] = 'https://service.thecloud.net/service-platform/login/'
+headers['thecloud']['Origin'] = 'https://service.thecloud.net'
+headers['thecloud']['Cookie'] = 'JSESSIONID=1ripkgw07i92z1v8z8jp6ei12a; ROUTEID=.sp-app-6; MYCLOUDID=.sp-app-6'
 
 def main():
   
@@ -141,7 +150,7 @@ def main():
       +' is not as expected.\n')
 
   # determine which network we're on from the intercept response
-  domain = get_redirect_domain(response, content)
+  (domain, protocol) = get_redirect_domain(response, content)
   if domain is None:
     if ssid in LOGIN_DOMAINS:
       domain = LOGIN_DOMAINS[ssid]
@@ -153,7 +162,10 @@ def main():
     fail('Error: unrecognized gateway for "'+str((ssid, domain))+'"')
 
   # send accept POST
-  conex = httplib.HTTPConnection(domain)
+  if protocol == 'http':
+    conex = httplib.HTTPConnection(domain)
+  elif protocol == 'https':
+    conex = httplib.HTTPSConnection(domain)
   LOG.write("sending login HTTP request\n")
   conex.request(
     'POST',
@@ -228,13 +240,14 @@ def get_redirect_domain(response, content):
   location_url = response.getheader('Location')
   if location_url is None:
     return None
-  match = re.search(r'^http://([^/]+)/', location_url)
+  match = re.search(r'^(https?)://([^/]+)/', location_url)
   if match:
-    domain = match.group(1).lower()
+    protocol = match.group(1).lower()
+    domain = match.group(2).lower()
   else:
     LOG.write("Error: value of 'Location:' header does not match expected "
       "pattern.\n")
-  return domain
+  return (domain, protocol)
 
 
 def fail(message):
