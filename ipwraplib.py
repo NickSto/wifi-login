@@ -3,6 +3,7 @@ from the OS like wifi SSIDs, MAC addresses, DNS queries, etc."""
 import os
 import re
 import uuid
+import socket
 import subprocess
 import distutils.spawn
 
@@ -137,3 +138,16 @@ def get_mac():
       mac += ':'
     mac += char
   return mac
+
+
+def get_ip():
+  """Get this machine's IP address.
+  Should return the actual one used to connect to public IP's, if multiple
+  interfaces are being used."""
+  #TODO: Use get_default_route() to determine correct interface, and directly
+  #      query its IP instead of kludge of making a dummy connection.
+  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  sock.connect(('8.8.8.8', 53))
+  ip = sock.getsockname()[0]
+  sock.close()
+  return ip
