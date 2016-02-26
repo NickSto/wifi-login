@@ -10,6 +10,7 @@ import logging
 import httplib
 import urlparse
 import argparse
+import datetime
 import collections
 import ipwraplib
 
@@ -54,19 +55,31 @@ def main(argv):
     help='Print informational messages in addition to warnings and errors.')
   parser.add_argument('-D', '--debug', dest='log_level', action='store_const', const=logging.DEBUG,
     help='Turn debug messages on.')
-  parser.add_argument('-l', '--log', type=argparse.FileType('w'),
-    help='Print log messages to this file instead of to stderr. Warning: Will overwrite the file.')
+  parser.add_argument('-l', '--log', type=argparse.FileType('a'),
+    help='Print log messages to this file instead of to stderr. Will append to the file.')
+  parser.add_argument('-O', '--overwrite-log', action='store_true',
+    help='Overwrite the log file instead of appending to it.')
 
   args = parser.parse_args(argv[1:])
 
+  # Set up the log file.
+  if args.overwrite_log:
+    args.log.truncate(0)
   logging.basicConfig(stream=args.log, level=args.log_level, format='%(levelname)s: %(message)s')
   tone_down_logger()
 
+  # Print a starting timestamp to the log.
+  now_dt = datetime.datetime.now()
+  now_time = int(time.mktime(now_dt.timetuple()))
+  logging.info('Started at {} ({})'.format(str(now_dt)[:19], now_time))
+
+  # Exit if we're not supposed to be network-silent right now.
   if os.path.exists(os.path.expanduser(SILENCE_FILE)):
     logging.warn('Silence file ({}) exists. Exiting instead of creating network traffic.'
                  .format(SILENCE_FILE))
     return 0
 
+  # Pause before execution, if requested.
   if args.wait:
     logging.debug('Pausing {} seconds as requested by --wait option..'.format(args.wait))
     time.sleep(args.wait)
@@ -86,8 +99,13 @@ def main(argv):
                    .format(ssid, args.request_dir))
       return 0
 
+  # Read the request file.
+  with open(request_file) as request:
+    headers, method, path, protocol, post_data = parse_request_file(request)
+
   # Check if our connection is being intercepted by the wifi access point.
   #TODO: Check where the intercepted response is redirecting us, if it is ("Location" header).
+  #TODO: Retry on connection failure.
   if not args.skip_test:
     expected = {'status':args.expected_status, 'body':args.expected_body}
     clear = is_connection_clear(args.test_url, expected)
@@ -95,9 +113,8 @@ def main(argv):
       logging.info('Looks like you\'re already connected!')
       return 0
 
-  with open(request_file) as request:
-    headers, method, path, protocol, post_data = parse_request_file(request)
-
+  # Make the HTTP request to (hopefully) grant access.
+  #TODO: Retry on connection failure.
   make_request(headers, method, path, protocol, post_data)
 
 
@@ -233,7 +250,7 @@ def is_connection_clear(url, expected, timeout=2):
     else:
       response_body = response.read(len(expected['body']))
       logging.debug('Test URL response body:\n{}\nexpected:\n{}'
-                    .format(response_body[:100]), expected['body'][:100])
+                    .format(response_body[:100], expected['body'][:100]))
       if response_body == expected['body']:
         is_expected = True
   return is_expected
