@@ -14,19 +14,27 @@ else
 fi
 ScriptDir=$(dirname $script_path)
 
-Usage="Usage: sudo ./$(basename $0)
+Usage="Usage: sudo ./$(basename $0) [-f]
 This will set up your system so $WifiScriptName automatically runs whenever you connect to a
 wireless network. Currently it only works on Linux systems using NetworkManager.
 It does this by adding a script named $HookScriptName to $NmHookDir/.
-That script executes $ScriptDir/$WifiScriptName when you connect to wifi."
+That script executes $ScriptDir/$WifiScriptName when you connect to wifi.
+Options:
+-f: Force it to overwrite $NmHookDir/$HookScriptName if it exists.
+    By default it will not overwrite anything."
 
 function fail {
   echo "$@" >&2
   exit 1
 }
 
+force=
 if [[ $# -gt 0 ]]; then
-  fail "$Usage"
+  if [[ $1 == '-f' ]]; then
+    force=true
+  else
+    fail "$Usage"
+  fi
 fi
 
 if [[ $EUID != 0 ]]; then
@@ -37,14 +45,17 @@ platform=$(uname -s)
 
 case "$platform" in
   Linux)
-    if [[ -e $NmHookDir/$HookScriptName ]]; then
+    if [[ -e $NmHookDir/$HookScriptName ]] && ! [[ $force ]]; then
       fail "Error: $NmHookDir/$HookScriptName already exists."
     fi
     # Print a small script to the NetworkManager directory.
     cat <<EOF > $NmHookDir/$HookScriptName
 #!/usr/bin/env bash
+# Run when the interface (\$1) starts with "wl" (as in "wlan0" or "wlp2s0") and status (\$2) is "up".
 if [[ \${1:0:2} == wl ]] && [[ \$2 == up ]]; then
-  python $ScriptDir/$WifiScriptName -D
+  # Wait 3 seconds before running script. If you run it immediately, sometimes the connection still
+  # isn't set up properly and you'll get network errors.
+  python $ScriptDir/$WifiScriptName -w 1
 fi
 EOF
     chmod 755 $NmHookDir/$HookScriptName
