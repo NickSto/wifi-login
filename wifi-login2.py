@@ -23,9 +23,13 @@ SILENCE_FILE = '~/.local/share/nbsdata/SILENCE'
 
 ARG_DEFAULTS = {'request_dir':os.path.join(SCRIPT_DIR, REQUEST_DIR_DEFAULT), 'log':sys.stderr,
                 'log_level':logging.WARNING, 'test_url':'http://www.gstatic.com/generate_204',
-                'expected_status':204, 'expected_body':'', 'wait':0}
+                'expected_status':204, 'expected_body':'', 'wait':0, 'retries':2, 'retry_pause':0.5}
 USAGE = "%(prog)s [options]"
-DESCRIPTION = """"""
+DESCRIPTION = """Automatically log in to wifi networks which prevent access until you accept their
+terms of service, provide an email address, etc. First, log in normally and capture the HTTP request
+your browser generated in the process. Save it to a file and give its path as the first argument to
+this script. Or, you can name the text file [SSID].txt and save it in
+"""+ARG_DEFAULTS['request_dir']+', and this script will automatically find it.'
 
 def main(argv):
 
@@ -49,6 +53,10 @@ def main(argv):
     help='The body of the expected response to the test url. Default: "%(default)s".')
   parser.add_argument('-w', '--wait', type=float,
     help='The amount of time to wait before execution, in seconds. Default: %(default)s.')
+  parser.add_argument('-r', '--retries', type=int,
+    help='The number of times to retry an HTTP request if it fails. Default: %(default)s.')
+  parser.add_argument('-R', '--retry-pause', type=float,
+    help='The number of seconds to wait between HTTP request retries. Default: %(default)s.')
   parser.add_argument('-q', '--quiet', dest='log_level', action='store_const', const=logging.ERROR,
     help='Print messages only on terminal errors.')
   parser.add_argument('-v', '--verbose', dest='log_level', action='store_const', const=logging.INFO,
@@ -105,17 +113,29 @@ def main(argv):
 
   # Check if our connection is being intercepted by the wifi access point.
   #TODO: Check where the intercepted response is redirecting us, if it is ("Location" header).
-  #TODO: Retry on connection failure.
   if not args.skip_test:
     expected = {'status':args.expected_status, 'body':args.expected_body}
-    clear = is_connection_clear(args.test_url, expected)
+    tries_left = args.retries + 1
+    while tries_left > 0:
+      try:
+        clear = is_connection_clear(args.test_url, expected)
+        tries_left = 0
+      except (socket.error, httplib.HTTPException):
+        tries_left -= 1
+        time.sleep(args.retry_pause)
     if clear:
       logging.info('Looks like you\'re already connected!')
       return 0
 
   # Make the HTTP request to (hopefully) grant access.
-  #TODO: Retry on connection failure.
-  make_request(headers, method, path, protocol, post_data)
+  tries_left = args.retries + 1
+  while tries_left > 0:
+    try:
+      make_request(headers, method, path, protocol, post_data)
+      tries_left = 0
+    except (socket.error, httplib.HTTPException):
+      tries_left -= 1
+      time.sleep(args.retry_pause)
 
 
 def find_request_file(request_dir, ssid):
@@ -191,8 +211,9 @@ def make_request(headers, method, path, protocol, post_data):
   logging.debug('Getting response..')
   try:
     connection.getresponse()
-  except Exception:
-    logging.error('Login unsuccessful. Maybe a bad status line?\n')
+  except Exception as e:
+    logging.warn('Login unsuccessful. Raised a '+type(e).__name__+' exception.')
+    raise
   finally:
     logging.debug('Closing connection..')
     connection.close()
@@ -231,11 +252,15 @@ def is_connection_clear(url, expected, timeout=2):
     response = connection.getresponse()
   except socket.error as se:
     if se.errno == errno.ENETUNREACH:
-      logging.error('Unable to make HTTP connection to test if your connection is blocked. '
-                    'You may not be connected to wifi.')
+      logging.warn('Failed making HTTP connection to test if your connection is blocked. '
+                   'You may not be connected to wifi.')
+    else:
+      logging.warn('Failed making HTTP connection to test if your connection is blocked. '
+                   'Raised a '+type(se).__name__+' exception.')
     raise
-  except Exception:
-    logging.error('Unable to make HTTP connection to test if your connection is blocked.')
+  except Exception as e:
+    logging.warn('Failed making HTTP connection to test if your connection is blocked. '
+                 'Raised a '+type(e).__name__+' exception.')
     raise
   connection.close()
   # Is the response as expected?
