@@ -14,7 +14,8 @@ import urllib
 import httplib
 import urlparse
 import datetime
-import ipwraplib
+from lib import ipwraplib
+from lib import maclib
 
 LOG = sys.stderr
 
@@ -75,7 +76,7 @@ post_data = {
   'upmc'    :'email=guestuser%40upmc.com&cmd=authenticate&Login=I+ACCEPT',
   'thecloud':'username=nma.psy%2Btc%40gmail.com&password=blabbitybloo',
   #TODO: Will have to scrape the 'ValidationHash' from the interception page HTML
-  'attwifi' :'aupAgree=1&x=67&y=17&NmdId=489467&ReturnHost=nmd.pennst03.univepa.wayport.net&MacAddr='+urllib.quote(ipwraplib.get_mac().upper())+'&IpAddr='+ipwraplib.get_ip()+'&NduMacAddr=&NduPort=&PortType=Wireless&PortDesc=&UseCount=1&PaymentMethod=Passthrough&ChargeAmount=0.00&Style=AWS&vsgpId=&pVersion=2&ValidationHash=ee0d7b169225c151c211ec38a93528e6&origDest=&ProxyHost=&vsgId=1100844&Ip6Addr=&VlanId=24&TunnelIfId=6771040&ts=1412777213'
+  'attwifi' :'aupAgree=1&x=67&y=17&NmdId=489467&ReturnHost=nmd.pennst03.univepa.wayport.net&MacAddr='+urllib.quote(maclib.get_mac().string)+'&IpAddr='+maclib.get_ip()+'&NduMacAddr=&NduPort=&PortType=Wireless&PortDesc=&UseCount=1&PaymentMethod=Passthrough&ChargeAmount=0.00&Style=AWS&vsgpId=&pVersion=2&ValidationHash=ee0d7b169225c151c211ec38a93528e6&origDest=&ProxyHost=&vsgId=1100844&Ip6Addr=&VlanId=24&TunnelIfId=6771040&ts=1412777213'
 }
 
 HEADERS_BASE = {
@@ -108,9 +109,9 @@ headers['nih-fern']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
 headers['nih-b45']['Origin']  = 'http://wlan-gateway-b45-outside.net.nih.gov:81'
 headers['nih-b45']['Referer'] = 'http://wlan-gateway-b45-outside.net.nih.gov:81/'
 headers['nih-b45']['Cookie']  = 'ncbi_sid=50C95150116F7891_0000SID'
-headers['upmc']['Referer'] = 'http://10.1.123.5/upload/custom/upmc-guest/index.html?cmd=login&switchip=10.1.123.5&mac='+ipwraplib.get_mac()+'&ip='+ipwraplib.get_ip()+'&essid=%20&apname=tunnel%2020&apgroup=&url=http%3A%2F%2Fgoogle%2Ecom%2F'
+headers['upmc']['Referer'] = 'http://10.1.123.5/upload/custom/upmc-guest/index.html?cmd=login&switchip=10.1.123.5&mac='+maclib.get_mac().string+'&ip='+ipwraplib.get_ip()+'&essid=%20&apname=tunnel%2020&apgroup=&url=http%3A%2F%2Fgoogle%2Ecom%2F'
 headers['upmc']['Origin']  = 'http://10.1.123.5'
-headers['attwifi']['Referer'] = 'http://nmd.pennst03.univepa.wayport.net/index.adp?MacAddr='+urllib.quote(ipwraplib.get_mac().upper())+'&IpAddr='+urllib.quote(ipwraplib.get_ip())+'&Ip6Addr=&vsgpId=&vsgId=1100844&UserAgent=&ProxyHost=&TunnelIfId=6771040&VlanId=24'
+headers['attwifi']['Referer'] = 'http://nmd.pennst03.univepa.wayport.net/index.adp?MacAddr='+urllib.quote(maclib.get_mac().string)+'&IpAddr='+urllib.quote(ipwraplib.get_ip())+'&Ip6Addr=&vsgpId=&vsgId=1100844&UserAgent=&ProxyHost=&TunnelIfId=6771040&VlanId=24'
 headers['attwifi']['Origin']  = 'http://nmd.pennst03.univepa.wayport.net'
 headers['thecloud']['Referer'] = 'https://service.thecloud.net/service-platform/login/'
 headers['thecloud']['Origin'] = 'https://service.thecloud.net'

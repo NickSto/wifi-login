@@ -12,7 +12,7 @@ import urlparse
 import argparse
 import datetime
 import collections
-import ipwraplib
+from lib import ipwraplib
 
 #TODO: There may be security concerns arising from the fact that an SSID can be any sequence of
 #      32 bytes instead of a normal string. Check handling of ssid's through the script.
@@ -120,7 +120,8 @@ def main(argv):
       try:
         clear = is_connection_clear(args.test_url, expected)
         tries_left = 0
-      except (socket.error, httplib.HTTPException):
+      except (socket.error, httplib.HTTPException) as e:
+        logging.warn('Test connection failure. Raised a {}: {}'.format(type(e).__name__, e))
         tries_left -= 1
         time.sleep(args.retry_pause)
     if clear:
@@ -133,7 +134,8 @@ def main(argv):
     try:
       make_request(headers, method, path, protocol, post_data)
       tries_left = 0
-    except (socket.error, httplib.HTTPException):
+    except (socket.error, httplib.HTTPException) as e:
+      logging.warn('Request failure. Raised a {}: {}'.format(type(e).__name__, e))
       tries_left -= 1
       time.sleep(args.retry_pause)
 
