@@ -14,14 +14,19 @@ else
 fi
 ScriptDir=$(dirname $script_path)
 
-Usage="Usage: sudo ./$(basename $0) [-f]
-This will set up your system so $WifiScriptName automatically runs whenever you connect to a
-wireless network. Currently it only works on Linux systems using NetworkManager.
-It does this by adding a script named $HookScriptName to $NmHookDir/.
+Usage="Usage: ./$(basename $0) [-f]
+This will set up your system so $WifiScriptName automatically runs whenever
+you connect to a wireless network. Currently it only works on Linux systems
+using NetworkManager.
+It does this by adding a script named $HookScriptName to
+$NmHookDir/.
 That script executes $ScriptDir/$WifiScriptName when you connect to wifi.
 Options:
 -f: Force it to overwrite $NmHookDir/$HookScriptName if it exists.
-    By default it will not overwrite anything."
+    By default it will not overwrite anything.
+NOTE: This will require root privileges for a few commands, but only executes
+those couple commands as root with sudo. You don't need to run this script
+itself as root."
 
 function fail {
   echo "$@" >&2
@@ -37,10 +42,6 @@ if [[ $# -gt 0 ]]; then
   fi
 fi
 
-if [[ $EUID != 0 ]]; then
-  fail "Error: must run as root."
-fi
-
 platform=$(uname -s)
 
 case "$platform" in
@@ -49,17 +50,18 @@ case "$platform" in
       fail "Error: $NmHookDir/$HookScriptName already exists."
     fi
     # Print a small script to the NetworkManager directory.
-    cat <<EOF > $NmHookDir/$HookScriptName
+    cat <<EOF | sudo tee $NmHookDir/$HookScriptName > /dev/null
 #!/usr/bin/env bash
 # Run when the interface (\$1) starts with "wl" (as in "wlan0" or "wlp2s0") and status (\$2) is "up".
 if [[ \${1:0:2} == wl ]] && [[ \$2 == up ]]; then
-  # Wait 3 seconds before running script. If you run it immediately, sometimes the connection still
-  # isn't set up properly and you'll get network errors.
+  # Wait 1 second before running the script. If you run it immediately, sometimes the connection
+  # still isn't set up properly and you'll get network errors.
   python $ScriptDir/$WifiScriptName -w 1
 fi
 EOF
-    chmod 755 $NmHookDir/$HookScriptName
+    sudo chmod 755 $NmHookDir/$HookScriptName
   ;;
+  #TODO: Darwin)
   *)
     fail 'Error: Unsupported OS "'$platform'"'
   ;;
