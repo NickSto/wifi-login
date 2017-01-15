@@ -13,6 +13,7 @@ import argparse
 import datetime
 import collections
 from lib import ipwraplib
+from lib import maclib
 
 #TODO: There may be security concerns arising from the fact that an SSID can be any sequence of
 #      32 bytes instead of a normal string. Check handling of ssid's through the script.
@@ -169,6 +170,10 @@ def find_request_file(request_dir, ssid):
 
 
 def parse_request_file(request_file):
+  """Parse a file with the login HTTP request represented in plain text.
+  Placeholders of the format ${name} can be used in the path, header values, or
+  POST data. Unrecognized placeholders will raise a warning and be replaced with
+  an empty string."""
   headers = collections.OrderedDict()
   post_data = ''
   section = 'first'
@@ -181,13 +186,14 @@ def parse_request_file(request_file):
                       '\n\t'+line)
         raise ValueError
       method, path, protocol = fields
+      path = substitute_placeholders(path)
       section = 'headers'
     elif section == 'headers':
       c_index = line.find(':')
       if c_index > 0:
         key = normalize_header_name(line[:c_index])
         value = line[c_index+1:].lstrip(' ')
-        headers[key] = value
+        headers[key] = substitute_placeholders(value)
       elif c_index == -1:
         # This should be an empty line after the headers.
         assert not line, line
@@ -195,7 +201,7 @@ def parse_request_file(request_file):
       else:
         raise AssertionError('Invalid colon location in header: '+line)
     elif section == 'data':
-      post_data = line
+      post_data = substitute_placeholders(line)
       section = 'done'
     elif section == 'done':
       # We should be done at this point.
@@ -305,6 +311,51 @@ def is_connection_clear(url, expected, timeout=2):
       if response_body == expected['body']:
         is_expected = True
   return is_expected
+
+
+def substitute_placeholders(string_in):
+  """Parse a string containing ${placeholders}, substituting in their computed values."""
+  # For fun, let's try implementing without examining every character in Python.
+  # Instead, use str.split() to break the string into pieces around the placeholders.
+  # - str.split() is in C: https://github.com/python/cpython/blob/master/Objects/stringlib/split.h
+  # First, split on the starting pattern "${".
+  chunks = string_in.split('${')
+  string_out = ''
+  for i, chunk in enumerate(chunks):
+    # Output the first chunk unaltered. This is the part of the string before the first "${".
+    if i == 0:
+      string_out += chunk
+      continue
+    bits = chunk.split('}')
+    # No matching ending "}". Re-construct the original string.
+    if len(bits) <= 1:
+      string_out += '${'+'}'.join(bits)
+      continue
+    placeholder = bits[0]
+    string_out += get_substitution(placeholder)
+    # Output the parts after the "}". If there is more than one, it means there's unmatched "}"s.
+    # Output those literally, without removing the "}"s.
+    string_out += '}'.join(bits[1:])
+  return string_out
+
+
+def get_substitution(placeholder):
+  #TODO: Way to generically request upper or lower case.
+  #TODO: 'host': The host name the request is being sent to.
+  #TODO: 'wifiip': The IP address of the router.
+  if placeholder == 'mac':
+    return maclib.get_mac().string
+  elif placeholder == 'MAC':
+    return maclib.get_mac().string.upper()
+  elif placeholder == 'ip':
+    return ipwraplib.get_ip()
+  elif placeholder == 'ssid':
+    return ipwraplib.get_wifi_info()[1]
+  elif placeholder == 'wifimac':
+    return ipwraplib.get_wifi_info()[2]
+  else:
+    logging.warn('Unrecognized placeholder "{}".'.format(placeholder))
+    return ''
 
 
 def tone_down_logger():
