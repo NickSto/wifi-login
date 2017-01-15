@@ -116,6 +116,7 @@ def main(argv):
   if not args.skip_test:
     expected = {'status':args.expected_status, 'body':args.expected_body}
     tries_left = args.retries + 1
+    clear = False
     while tries_left > 0:
       try:
         clear = is_connection_clear(args.test_url, expected)
