@@ -16,6 +16,8 @@ from lib import ipwraplib
 
 #TODO: There may be security concerns arising from the fact that an SSID can be any sequence of
 #      32 bytes instead of a normal string. Check handling of ssid's through the script.
+#TODO: Allow an SSID wildcard system so that we could, say, match "Fullington - 759" and
+#      "Fullington - 936" to the same request file.
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 REQUEST_DIR_DEFAULT = 'http-login'
@@ -41,6 +43,11 @@ def main(argv):
   parser.add_argument('-d', '--request-dir',
     help='The directory containing records of the HTTP requests. Default: %(default)s (A directory '
          'named '+REQUEST_DIR_DEFAULT+' under the script\'s directory).')
+  parser.add_argument('-c', '--check-request', action='store_true',
+    help='Just check the request file for validity; don\'t try to test the connection or log in. '
+         'This will print any errors found in the request file, then print out the request so you '
+         'can see if the parser understood it properly. All placeholders will be replaced with '
+         'their current values.')
   parser.add_argument('-S', '--skip-test', action='store_true',
     help='Skip the connection test and assume we need to log in.')
   parser.add_argument('-u', '--test-url',
@@ -73,19 +80,17 @@ def main(argv):
   # Set up the log file.
   if args.overwrite_log:
     args.log.truncate(0)
-  logging.basicConfig(stream=args.log, level=args.log_level, format='%(levelname)s: %(message)s')
+  if args.check_request:
+    log_level = logging.WARNING
+  else:
+    log_level = args.log_level
+  logging.basicConfig(stream=args.log, level=log_level, format='%(levelname)s: %(message)s')
   tone_down_logger()
 
   # Print a starting timestamp to the log.
   now_dt = datetime.datetime.now()
   now_time = int(time.mktime(now_dt.timetuple()))
   logging.info('Started at {} ({})'.format(str(now_dt)[:19], now_time))
-
-  # Exit if we're not supposed to be network-silent right now.
-  if os.path.exists(os.path.expanduser(SILENCE_FILE)):
-    logging.warn('Silence file ({}) exists. Exiting instead of creating network traffic.'
-                 .format(SILENCE_FILE))
-    return 0
 
   # Pause before execution, if requested.
   if args.wait:
@@ -110,6 +115,15 @@ def main(argv):
   # Read the request file.
   with open(request_file) as request:
     headers, method, path, protocol, post_data = parse_request_file(request)
+
+  if args.check_request:
+    return
+
+  # Exit if we're not supposed to be network-silent right now.
+  if os.path.exists(os.path.expanduser(SILENCE_FILE)):
+    logging.warn('Silence file ({}) exists. Exiting instead of creating network traffic.'
+                 .format(SILENCE_FILE))
+    return 0
 
   # Check if our connection is being intercepted by the wifi access point.
   #TODO: Check where the intercepted response is redirecting us, if it is ("Location" header).
@@ -188,6 +202,15 @@ def parse_request_file(request_file):
       assert not line, ('Non-blank lines found after the first POST data line. All '
                                        'POST data must be on one line.')
   return headers, method, path, protocol, post_data
+
+
+def print_request(headers, method, path, protocol, post_data):
+  print('{} {} {}'.format(method, path, protocol))
+  for key, value in headers.items():
+    print('{}: {}'.format(key, value))
+  print()
+  if post_data:
+    print(post_data)
 
 
 def make_request(headers, method, path, protocol, post_data):
